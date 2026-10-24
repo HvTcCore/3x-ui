@@ -41,6 +41,10 @@ type SponsorList struct {
 }
 
 const (
+	// sponsorsEnabled controls whether sponsored placements are served by the panel.
+	// Keep false to disable sponsor content and avoid fetching the remote sponsor list.
+	sponsorsEnabled = false
+
 	sponsorsTTL      = time.Hour
 	sponsorsErrTTL   = 10 * time.Minute
 	maxSponsorsBytes = 256 << 10
@@ -80,6 +84,9 @@ var (
 // GetSponsors returns the currently active sponsors. The remote file is cached, but the
 // window is re-checked on every call so a slot starts exactly at From and ends at Until.
 func (s *PanelService) GetSponsors() (*SponsorList, error) {
+	if !sponsorsEnabled {
+		return &SponsorList{Sponsors: []Sponsor{}}, nil
+	}
 	raw, err := cachedSponsors()
 	if err != nil {
 		return nil, err
@@ -110,6 +117,9 @@ func cachedSponsors() (*SponsorList, error) {
 
 // GetSponsorLogo returns the image bytes for a logo of a currently active sponsor.
 func (s *PanelService) GetSponsorLogo(name string) ([]byte, string, error) {
+	if !sponsorsEnabled {
+		return nil, "", ErrSponsorLogoUnknown
+	}
 	// Validated here, not only via list membership, so name can never carry a path or URL.
 	if !sponsorLogoRe.MatchString(name) {
 		return nil, "", ErrSponsorLogoUnknown
